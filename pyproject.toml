@@ -1,6 +1,6 @@
 [project]
 name = "lunchable-autolunch"
-version = "0.1.0"
+version = "0.1.2"
 description = "Automatically rename merchant names and autocategorise transactions."
 authors = [
     {name = "LightQuantum", email = "self@lightquantum.me"},
