@@ -2,6 +2,8 @@
 
 Automatically rename merchant names and autocategorise transactions for LunchMoney.
 
+![screenshot](screenshot.png)
+
 ## Installation
 
 ```shell
