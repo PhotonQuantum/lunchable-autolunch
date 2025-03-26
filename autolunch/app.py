@@ -6,7 +6,12 @@ from collections import OrderedDict
 from typing import Optional, Literal
 
 from lunchable import TransactionUpdateObject
-from lunchable.models import CategoriesObject, AssetsObject, PlaidAccountObject, TransactionObject
+from lunchable.models import (
+    CategoriesObject,
+    AssetsObject,
+    PlaidAccountObject,
+    TransactionObject,
+)
 from lunchable.plugins import LunchableApp
 from openai import OpenAI
 from pydantic import BaseModel
@@ -109,7 +114,9 @@ class AutoLunchApp(LunchableApp):
         """
         self.mode = mode
 
-    def set_since_until(self, since: Optional[datetime.datetime], until: Optional[datetime.datetime]):
+    def set_since_until(
+        self, since: Optional[datetime.datetime], until: Optional[datetime.datetime]
+    ):
         """
         Set since and until dates for the application.
         """
@@ -122,26 +129,48 @@ class AutoLunchApp(LunchableApp):
     def refresh_txns(self):
         match self.account:
             case PlaidAccountObject(id=id):
-                self.refresh_transactions(plaid_account_id=id, category_id=None, start_date=self.since,
-                                          end_date=self.until)
+                self.refresh_transactions(
+                    plaid_account_id=id,
+                    category_id=None,
+                    start_date=self.since,
+                    end_date=self.until,
+                )
             case AssetsObject(id=id):
-                self.refresh_transactions(asset_id=id, category_id=None, start_date=self.since, end_date=self.until)
+                self.refresh_transactions(
+                    asset_id=id,
+                    category_id=None,
+                    start_date=self.since,
+                    end_date=self.until,
+                )
 
     def apply_rules_to_txns(self):
-        for txn in filter(lambda txn: txn.payee not in self.excluded and txn.category_id is None,
-                          self.data.transactions_list):
+        for txn in filter(
+            lambda txn: txn.payee not in self.excluded and txn.category_id is None,
+            self.data.transactions_list,
+        ):
             matched = False
             for rule in self.rules:
                 if all(matcher in txn.payee for matcher in rule.matchers):
-                    category = next(filter(lambda c: c.name == rule.category,
-                                           self.data.categories_list)) if rule.category != "Unknown" else None
+                    category = (
+                        next(
+                            filter(
+                                lambda c: c.name == rule.category,
+                                self.data.categories_list,
+                            )
+                        )
+                        if rule.category != "Unknown"
+                        else None
+                    )
                     if category is None and rule.category != "Unknown":
                         continue  # category disappeared, skip
                     category_id = category.id if category is not None else None
-                    self.lunch.update_transaction(txn.id, TransactionUpdateObject(
-                        category_id=category_id,
-                        payee=rule.name if rule.name != "Unknown" else None,
-                    ))
+                    self.lunch.update_transaction(
+                        txn.id,
+                        TransactionUpdateObject(
+                            category_id=category_id,
+                            payee=rule.name if rule.name != "Unknown" else None,
+                        ),
+                    )
                     matched = True
                     break
             if not matched:
@@ -158,7 +187,9 @@ class AutoLunchApp(LunchableApp):
             #     filter(lambda txn: txn.id in self.excluded_id or txn.category_id is None, self.data.transactions_list),
             #     count))
             # TODO use self.data.transactions_list and separate apply with suggest after rule endpoint gets stablized
-            sampled_txns: list[TransactionObject] = list(itertools.islice(self.apply_rules_to_txns(), count))
+            sampled_txns: list[TransactionObject] = list(
+                itertools.islice(self.apply_rules_to_txns(), count)
+            )
             if not sampled_txns:
                 return OrderedDict()
 
@@ -166,17 +197,18 @@ class AutoLunchApp(LunchableApp):
 
         gpt_text = LiveRender("")
         group = Group(
-            Panel(gpt_text, height=5),
-            self.console.status("Generating suggestions...")
+            Panel(gpt_text, height=5), self.console.status("Generating suggestions...")
         )
 
         resp_text = ""
         with Live(group, console=self.console, refresh_per_second=10, transient=True):
             stream = self.gpt.responses.create(
                 model="gpt-4o",
-                instructions=debit_system_prompt if self.mode == "debit" else credit_system_prompt,
+                instructions=debit_system_prompt
+                if self.mode == "debit"
+                else credit_system_prompt,
                 input=f"{input_header}{json.dumps(txn_payee)}{input_footer}",
-                stream=True
+                stream=True,
             )
 
             def update_text(s: str):
@@ -204,7 +236,7 @@ class AutoLunchApp(LunchableApp):
         if answer_start == -1 or answer_end == -1:
             raise ValueError("No answer found in the response")
 
-        answer_text = resp_text[answer_start + 8:answer_end].strip()
+        answer_text = resp_text[answer_start + 8 : answer_end].strip()
         raw_rules = json.loads(answer_text)
         rules = [Rule(**rule) for rule in raw_rules]
 
@@ -212,5 +244,8 @@ class AutoLunchApp(LunchableApp):
             if rule.name == "Unknown" or rule.category == "Unknown":
                 self.excluded.add(txn_payee[idx])
 
-        return OrderedDict((txn_payee[idx], rule) for idx, rule in enumerate(rules) if
-                           rule.name != "Unknown" or rule.category != "Unknown")
+        return OrderedDict(
+            (txn_payee[idx], rule)
+            for idx, rule in enumerate(rules)
+            if rule.name != "Unknown" or rule.category != "Unknown"
+        )
