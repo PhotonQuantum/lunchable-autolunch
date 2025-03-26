@@ -20,14 +20,16 @@ from rich.live import Live
 from rich.live_render import LiveRender
 from rich.panel import Panel
 
-debit_system_prompt = """
+
+def debit_system_prompt(categories: list[str]):
+    return f"""
 You're an accounting platform, and you are trying your best to help an individual categorize her bank transactions:
 
 1. Give a human friendly pretty payee name. Strip away transaction metadata like "Paypal", "Point of Sale", "Transfer", "MEMO", merchant code, location code, etc. Please reword and expand abbrevations if present. If you are uncertain, use "Unknown".
 2. Try your best to map every merchant name to a specific category. If you are uncertain, use "Unknown".
 For categorizing, you MUST put them in one of these categories:
 ```json
-["Alcohol, Bars", "Bank Fees", "Coffee Shops", "Entertainment", "Food Delivery", "Gas, Transportation", "Gifts", "Groceries", "Income", "Payment, Transfer", "Personal Care", "Restaurants", "Ridesharing", "Self-improvement", "Shopping", "Travel", "Withdrawal", "Unknown"]
+{json.dumps(categories)}
 ```
 3. For each transaction, please give an array of two reusable matching substrings to categorize transactions from the same brand/company/person and of the same flow direction(inflow/outflow) automatically. Even if you are uncertain about the category, you MUST try your best to give general matching patterns:
 	a. For the first substring,  isolate the payee name and REMOVE any potential ID CODE.
@@ -42,14 +44,16 @@ Your final answer MUST be A JSON ARRAY with three fields in each element: "name"
 Wrap your thinking process with "<think>...</think>". Wrap your final answer in "<answer>...</answer>". No other type of block is allowed in response.
 """
 
-credit_system_prompt = """
+
+def credit_system_prompt(categories: list[str]):
+    return f"""
 You're an accounting platform, and you are trying your best to help an individual categorize her bank transactions:
 
 1. Give a human friendly pretty payee name. Strip away transaction metadata like "Paypal", "Point of Sale", "Transfer", "MEMO", merchant code, location code, etc. Please reword and expand abbrevations if present. If you are uncertain, use "Unknown".
 2. Try your best to map every merchant name to a specific category. If you are uncertain, use "Unknown".
 For categorizing, you MUST put them in one of these categories:
 ```json
-["Alcohol, Bars", "Bank Fees", "Coffee Shops", "Entertainment", "Food Delivery", "Gas, Transportation", "Gifts", "Groceries", "Income", "Payment, Transfer", "Personal Care", "Restaurants", "Ridesharing", "Self-improvement", "Shopping", "Travel", "Withdrawal", "Unknown"]
+{json.dumps(categories)}
 ```
 3. For each transaction, please give an array of one reusable matching substrings to categorize transactions from the same brand/company/person and of the same flow direction(inflow/outflow) automatically. Even if you are uncertain about the category, you MUST try your best to give general matching patterns: Isolate the payee name and REMOVE any potential ID CODE.
 For each matching substring, include separators from the INPUT at the START or the END. This is to make your matching substring NOT BEING a substring of OTHER potential merchants. DO NOT add any additional separators if not present in the input.
@@ -61,6 +65,7 @@ Your final answer MUST be A JSON ARRAY with three fields in each element: "name"
 
 Wrap your thinking process with "<think>...</think>". Wrap your final answer in "<answer>...</answer>". No other type of block is allowed in response.
 """
+
 
 input_header = """
 This is the input:
@@ -204,9 +209,13 @@ class AutoLunchApp(LunchableApp):
         with Live(group, console=self.console, refresh_per_second=10, transient=True):
             stream = self.gpt.responses.create(
                 model="gpt-4o",
-                instructions=debit_system_prompt
+                instructions=debit_system_prompt(
+                    [category.name for category in self.data.categories_list]
+                )
                 if self.mode == "debit"
-                else credit_system_prompt,
+                else credit_system_prompt(
+                    [category.name for category in self.data.categories_list]
+                ),
                 input=f"{input_header}{json.dumps(txn_payee)}{input_footer}",
                 stream=True,
             )
