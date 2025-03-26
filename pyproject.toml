@@ -1,5 +1,5 @@
 [project]
-name = "autolunch"
+name = "lunchable-autolunch"
 version = "0.1.0"
 description = "Automatically rename merchant names and autocategorise transactions."
 authors = [
