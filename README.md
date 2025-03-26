@@ -2,6 +2,12 @@
 
 Automatically rename merchant names and autocategorise transactions for LunchMoney.
 
+## Installation
+
+```shell
+pip install lunchable-autolunch
+```
+
 ## Usage
 
 ```shell
