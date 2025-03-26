@@ -1,0 +1,23 @@
+[project]
+name = "autolunch"
+version = "0.1.0"
+description = "Automatically rename merchant names and autocategorise transactions."
+authors = [
+    {name = "LightQuantum", email = "self@lightquantum.me"},
+]
+dependencies = ["click>=8.1.8", "lunchable>=1.4.2", "rich>=13.9.4", "openai>=1.68.2", "questionary>=2.1.0", "pydantic>=2.10.6", "readchar>=4.2.1", "copykitten>=1.2.2", "fuzzyfinder>=2.2.0", "thefuzz>=0.22.1"]
+requires-python = ">=3.10"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[project.entry-points."lunchable.cli"]
+autolunch = "autolunch.cli:autolunch"
+
+
+[tool.pdm]
+distribution = true
