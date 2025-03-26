@@ -156,17 +156,18 @@ class AutoLunchApp(LunchableApp):
             matched = False
             for rule in self.rules:
                 if all(matcher in txn.payee for matcher in rule.matchers):
-                    category = (
-                        next(
-                            filter(
-                                lambda c: c.name == rule.category,
-                                self.data.categories_list,
+                    try:
+                        category = (
+                            next(
+                                filter(
+                                    lambda c: c.name == rule.category,
+                                    self.data.categories_list,
+                                )
                             )
+                            if rule.category != "Unknown"
+                            else None
                         )
-                        if rule.category != "Unknown"
-                        else None
-                    )
-                    if category is None and rule.category != "Unknown":
+                    except StopIteration:
                         continue  # category disappeared, skip
                     category_id = category.id if category is not None else None
                     self.lunch.update_transaction(
